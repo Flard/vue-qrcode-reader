@@ -43,7 +43,7 @@ const adaptOldFormat = detectedCodes => {
 export const keepScanning = (videoElement, options) => {
   const barcodeDetector = new BarcodeDetector({ formats: ["qr_code"] });
 
-  const { detectHandler, locateHandler, minDelay } = options;
+  const { detectHandler, locateHandler, minDelay, lastScanResetTimeout } = options;
 
   const processFrame = state => async timeNow => {
     if (videoElement.readyState > 1) {
@@ -53,7 +53,16 @@ export const keepScanning = (videoElement, options) => {
         const detectedCodes = await barcodeDetector.detect(videoElement);
         const { content, location, imageData } = adaptOldFormat(detectedCodes)
 
-        if (content !== null && content !== contentBefore) {
+        if (
+          (content !== null) // has content
+          && (
+            (content !== contentBefore) // content changed
+            || (
+              (lastScanResetTimeout !== null) // or lastScanResetTimeout has passed
+              && (timeNow - lastScanned >= lastScanResetTimeout)
+              )
+            )
+          ) {
           detectHandler({ content, location, imageData });
         }
 
